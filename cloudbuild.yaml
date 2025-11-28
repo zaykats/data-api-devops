@@ -1,0 +1,66 @@
+# Configuration Cloud Build pour CI/CD
+# Ce fichier définit les étapes de build, test et déploiement
+
+steps:
+  # Étape 1: Construction de l'image Docker
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-image'
+    args:
+      - 'build'
+      - '-t'
+      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/data-api-repo/data-api:$COMMIT_SHA'
+      - '-t'
+      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/data-api-repo/data-api:latest'
+      - '.'
+    timeout: 600s
+
+  # Étape 2: Push de l'image vers Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-image'
+    args:
+      - 'push'
+      - '--all-tags'
+      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/data-api-repo/data-api'
+    timeout: 600s
+
+  # Étape 3: Déploiement sur Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-cloud-run'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'data-api'
+      - '--image'
+      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/data-api-repo/data-api:$COMMIT_SHA'
+      - '--region'
+      - 'europe-west1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--memory'
+      - '512Mi'
+      - '--cpu'
+      - '1'
+      - '--min-instances'
+      - '0'
+      - '--max-instances'
+      - '10'
+      - '--set-env-vars'
+      - 'ENV=production'
+      - '--timeout'
+      - '300'
+    timeout: 900s
+
+# Images à stocker dans Artifact Registry
+images:
+  - 'europe-west1-docker.pkg.dev/$PROJECT_ID/data-api-repo/data-api:$COMMIT_SHA'
+  - 'europe-west1-docker.pkg.dev/$PROJECT_ID/data-api-repo/data-api:latest'
+
+# Options de build
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'N1_HIGHCPU_8'
+
+# Timeout global du build
+timeout: '1200s'
