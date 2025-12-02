@@ -10,7 +10,7 @@ import os
 app = Flask(__name__)
 
 # Version de l'API (à changer pour la démonstration)
-API_VERSION = "1.0.0"
+API_VERSION = "2.0.0"
 
 # Variable d'environnement
 ENVIRONMENT = os.getenv('ENV', 'development')
